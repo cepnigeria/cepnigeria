@@ -2,8 +2,22 @@ import postgres from "postgres";
 import { randomUUID } from "node:crypto";
 
 const connectionString = process.env.DATABASE_URL;
-export const sql = connectionString ? postgres(connectionString, { ssl: "require", max: 5 }) : null;
-export const defaultSettings:Record<string,string>={organization_name:"Coalition of Entrepreneurs and Professionals (CEP)",description:"A community for ambitious entrepreneurs and professionals ready to scale their ventures, access opportunities and build valuable strategic relationships.",mission:"To connect, equip and promote entrepreneurs and professionals through strategic relationships, shared intelligence and access to opportunities that strengthen enterprise, careers and communities.",vision:"To become Nigeria’s most trusted coalition for enterprise growth, professional advancement and collaborative impact.",address:"3 Awolowo Way, Ikeja, Lagos",phone:"+234 814 832 8738",general_whatsapp:"https://chat.whatsapp.com/KO2hT8zs0nA3WJqFVeSec3?s=cl&p=i&mlu=0&ilr=0"};
+export const sql = connectionString
+  ? postgres(connectionString, { ssl: "require", max: 5 })
+  : null;
+export const defaultSettings: Record<string, string> = {
+  organization_name: "Coalition of Entrepreneurs and Professionals (CEP)",
+  description:
+    "A community for ambitious entrepreneurs and professionals ready to scale their ventures, access opportunities and build valuable strategic relationships.",
+  mission:
+    "To connect, equip and promote entrepreneurs and professionals through strategic relationships, shared intelligence and access to opportunities that strengthen enterprise, careers and communities.",
+  vision:
+    "To become Nigeria’s most trusted coalition for enterprise growth, professional advancement and collaborative impact.",
+  address: "3 Awolowo Way, Ikeja, Lagos",
+  phone: "+234 814 832 8738",
+  general_whatsapp:
+    "https://chat.whatsapp.com/KO2hT8zs0nA3WJqFVeSec3?s=cl&p=i&mlu=0&ilr=0",
+};
 
 let schemaReady: Promise<void> | null = null;
 
@@ -88,24 +102,94 @@ export async function ensureSchema() {
       CREATE INDEX IF NOT EXISTS members_location_idx ON members(state,lga,ward);
       CREATE INDEX IF NOT EXISTS members_referrer_idx ON members(referred_by);
       CREATE INDEX IF NOT EXISTS sessions_token_idx ON sessions(token_hash);
+      ALTER TABLE members ADD COLUMN IF NOT EXISTS full_address TEXT;
     `);
 
-    for (const [key,value] of Object.entries(defaultSettings)) {
+    for (const [key, value] of Object.entries(defaultSettings)) {
       await db`INSERT INTO settings (key,value) VALUES (${key},${value}) ON CONFLICT (key) DO NOTHING`;
     }
-    const stateId="00000000-0000-4000-8000-000000000001";
+    const stateId = "00000000-0000-4000-8000-000000000001";
     await db`INSERT INTO organization_units(id,name,type,sort_order)VALUES(${stateId},'Lagos','state',0)ON CONFLICT DO NOTHING`;
-    const lgas=["Agege","Ajeromi-Ifelodun","Alimosho","Amuwo-Odofin","Apapa","Badagry","Epe","Eti-Osa","Ibeju-Lekki","Ifako-Ijaiye","Ikeja","Ikorodu","Kosofe","Lagos Island","Lagos Mainland","Mushin","Ojo","Oshodi-Isolo","Shomolu","Surulere"];
-    for(const [index,name]of lgas.entries())await db`INSERT INTO organization_units(id,name,type,parent_id,sort_order)VALUES(${randomUUID()},${name},'lga',${stateId},${index+1})ON CONFLICT DO NOTHING`;
-    const positionCount=await db`SELECT COUNT(*)::int count FROM leadership_positions`;
-    if(Number(positionCount[0]?.count)===0){for(const [title,department,level,deputy]of [["President",null,"national","Deputy President"],["Director General","Operations","national","Deputy Director General"],["Secretary General","Secretariat","national","Assistant Secretary General"],["Director","Membership & Mobilisation","state","Deputy Director"],["Director","Entrepreneurship & Professional Development","state","Deputy Director"],["Director","Media & Communications","state","Deputy Director"],["Director","Political Affairs & Civic Engagement","state","Deputy Director"],["Director","Partnerships & Corporate Relations","state","Deputy Director"],["Director","Technology & Data","state","Deputy Director"]])await db`INSERT INTO leadership_positions(id,title,department,level,deputy_title)VALUES(${randomUUID()},${title},${department},${level},${deputy})`;}
-  })().catch((error) => { schemaReady = null; throw error; });
+    const lgas = [
+      "Agege",
+      "Ajeromi-Ifelodun",
+      "Alimosho",
+      "Amuwo-Odofin",
+      "Apapa",
+      "Badagry",
+      "Epe",
+      "Eti-Osa",
+      "Ibeju-Lekki",
+      "Ifako-Ijaiye",
+      "Ikeja",
+      "Ikorodu",
+      "Kosofe",
+      "Lagos Island",
+      "Lagos Mainland",
+      "Mushin",
+      "Ojo",
+      "Oshodi-Isolo",
+      "Shomolu",
+      "Surulere",
+    ];
+    for (const [index, name] of lgas.entries())
+      await db`INSERT INTO organization_units(id,name,type,parent_id,sort_order)VALUES(${randomUUID()},${name},'lga',${stateId},${index + 1})ON CONFLICT DO NOTHING`;
+    const positionCount =
+      await db`SELECT COUNT(*)::int count FROM leadership_positions`;
+    if (Number(positionCount[0]?.count) === 0) {
+      for (const [title, department, level, deputy] of [
+        ["President", null, "national", "Deputy President"],
+        [
+          "Director General",
+          "Operations",
+          "national",
+          "Deputy Director General",
+        ],
+        [
+          "Secretary General",
+          "Secretariat",
+          "national",
+          "Assistant Secretary General",
+        ],
+        ["Director", "Membership & Mobilisation", "state", "Deputy Director"],
+        [
+          "Director",
+          "Entrepreneurship & Professional Development",
+          "state",
+          "Deputy Director",
+        ],
+        ["Director", "Media & Communications", "state", "Deputy Director"],
+        [
+          "Director",
+          "Political Affairs & Civic Engagement",
+          "state",
+          "Deputy Director",
+        ],
+        [
+          "Director",
+          "Partnerships & Corporate Relations",
+          "state",
+          "Deputy Director",
+        ],
+        ["Director", "Technology & Data", "state", "Deputy Director"],
+      ])
+        await db`INSERT INTO leadership_positions(id,title,department,level,deputy_title)VALUES(${randomUUID()},${title},${department},${level},${deputy})`;
+    }
+  })().catch((error) => {
+    schemaReady = null;
+    throw error;
+  });
   return schemaReady;
 }
 
 export async function getSettings() {
-  if(!sql)return defaultSettings;
+  if (!sql) return defaultSettings;
   await ensureSchema();
   const rows = await requireDb()`SELECT key,value FROM settings`;
-  return {...defaultSettings,...Object.fromEntries(rows.map((row) => [String(row.key), String(row.value)]))};
+  return {
+    ...defaultSettings,
+    ...Object.fromEntries(
+      rows.map((row) => [String(row.key), String(row.value)]),
+    ),
+  };
 }
