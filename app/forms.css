@@ -1,0 +1,61 @@
+.field textarea {
+  border: 1px solid #cfd8df;
+  border-radius: 6px;
+  padding: 13px 14px;
+  font: inherit;
+  resize: vertical;
+}
+.search-form {
+  display: grid;
+  grid-template-columns: 2fr repeat(5, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+  margin: 16px 0 22px;
+}
+.search-form label {
+  display: grid;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--muted);
+}
+.search-form input,
+.search-form select {
+  min-width: 0;
+  border: 1px solid #ccd6de;
+  border-radius: 5px;
+  padding: 10px;
+  font: inherit;
+  background: #fff;
+}
+.member-editor {
+  margin-top: 10px;
+}
+.member-editor summary {
+  cursor: pointer;
+  color: var(--green);
+  font-weight: 800;
+}
+.admin-create-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.admin-create-grid .full {
+  grid-column: 1/-1;
+}
+@media (max-width: 1100px) {
+  .search-form,
+  .admin-create-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 600px) {
+  .search-form,
+  .admin-create-grid {
+    grid-template-columns: 1fr;
+  }
+  .admin-create-grid .full {
+    grid-column: auto;
+  }
+}
